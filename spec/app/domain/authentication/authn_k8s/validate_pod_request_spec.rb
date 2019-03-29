@@ -42,9 +42,10 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
   let(:pod_request) { double("PodRequest", :k8s_host => k8s_host,
                                            :spiffe_id => spiffe_id) }
 
+  let(:k8s_object_lookup) { double() }
+
   let(:dependencies) { { resource_repo: double(),
-                         k8s_resolver: k8s_resolver,
-                         k8s_object_lookup: double() } }
+                         k8s_resolver: k8s_resolver } }
 
   before(:each) do
     allow(Resource).to receive(:[])
@@ -68,7 +69,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
       allow(pod_request).to receive(:service_id).and_return(bad_service_name)
 
       expected_message = "Webservice '#{bad_service_name}' wasn't found"
-      expect { validator.(pod_request: pod_request) }
+      expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
         .to raise_error(Authentication::AuthnK8s::WebserviceNotFound, expected_message)
     end
 
@@ -80,7 +81,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
 
       expected_message = "'#{host_id}' does not have 'authenticate' privilege on #{good_service_name}"
 
-      expect { validator.(pod_request: pod_request) }
+      expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
         .to raise_error(Authentication::AuthnK8s::HostNotAuthorized, expected_message)
     end
 
@@ -96,7 +97,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
       expected_message = "No Pod found for podname '#{spiffe_name}' " \
         "in namespace '#{spiffe_namespace}'"
 
-      expect { validator.(pod_request: pod_request) }
+      expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
         .to raise_error(Authentication::AuthnK8s::PodNotFound, expected_message)
     end
 
@@ -128,7 +129,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
           .and_return(nil)
 
         expected_message = "Container authenticator was not found for requesting pod"
-        expect { validator.(pod_request: pod_request) }
+        expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
           .to raise_error(Authentication::AuthnK8s::ContainerNotFound, expected_message)
       end
 
@@ -141,7 +142,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
           .and_return({ :name => "notimportant" })
 
         expected_message = "Container authenticator was not found for requesting pod"
-        expect { validator.(pod_request: pod_request) }
+        expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
           .to raise_error(Authentication::AuthnK8s::ContainerNotFound, expected_message)
       end
 
@@ -157,7 +158,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
           .with(:value)
           .and_return(container_name)
 
-        expect { validator.(pod_request: pod_request) }.to_not raise_error
+        expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }.to_not raise_error
       end
     end
 
@@ -186,7 +187,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
 
         expected_message = "Resource type '#{k8s_host_controller}' identity scope is " \
           "not supported in this version of authn-k8s"
-        expect { validator.(pod_request: pod_request) }
+        expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
           .to raise_error(Authentication::AuthnK8s::ScopeNotSupported, expected_message)
       end
 
@@ -219,7 +220,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
 
           expected_message = "Kubernetes K8sHostController K8sHostObject " \
             "not found in namespace K8sHostNamespace"
-          expect { validator.(pod_request: pod_request) }
+          expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
             .to raise_error(Authentication::AuthnK8s::ControllerNotFound, expected_message)
         end
 
@@ -231,7 +232,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
             .with(k8s_host_controller, k8s_host_object, k8s_host_namespace)
             .and_raise(expected_message)
 
-          expect { validator.(pod_request: pod_request) }.to raise_error(RuntimeError,
+          expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }.to raise_error(RuntimeError,
                                                                          expected_message)
         end
 
@@ -247,7 +248,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
             .and_return(nil)
 
           expected_message = "Container authenticator was not found for requesting pod"
-          expect { validator.(pod_request: pod_request) }
+          expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
             .to raise_error(Authentication::AuthnK8s::ContainerNotFound, expected_message)
         end
 
@@ -260,7 +261,7 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
             .and_return({ :name => "notimportant" })
 
           expected_message = "Container authenticator was not found for requesting pod"
-          expect { validator.(pod_request: pod_request) }
+          expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }
             .to raise_error(Authentication::AuthnK8s::ContainerNotFound, expected_message)
         end
 
@@ -277,12 +278,12 @@ RSpec.describe Authentication::AuthnK8s::ValidatePodRequest do
             .and_return(container_name)
 
           begin
-            validator.(pod_request: pod_request)
+            validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup)
           rescue => err
             puts err
           end
 
-          expect { validator.(pod_request: pod_request) }.to_not raise_error
+          expect { validator.(pod_request: pod_request, k8s_object_lookup: k8s_object_lookup) }.to_not raise_error
         end
       end
     end

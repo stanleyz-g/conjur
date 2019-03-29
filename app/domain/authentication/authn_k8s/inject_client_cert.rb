@@ -8,14 +8,14 @@ module Authentication
         logger: Rails.logger,
         resource_repo: Resource,
         conjur_ca_repo: Repos::ConjurCA,
-        k8s_object_lookup: K8sObjectLookup,
         kubectl_exec: KubectlExec,
         validate_pod_request: ValidatePodRequest.new
       },
-      inputs: [:conjur_account, :service_id, :csr]
+      inputs: %i(conjur_account service_id csr)
     ) do
 
       def call
+        @k8s_object_lookup = K8sObjectLookup.new(webservice)
         validate
         install_signed_cert
       end
@@ -26,7 +26,10 @@ module Authentication
         # We validate the CSR first since the pod_request uses its values
         validate_csr
 
-        @validate_pod_request.(pod_request: pod_request)
+        @validate_pod_request.(
+          pod_request: pod_request,
+          k8s_object_lookup: @k8s_object_lookup
+        )
       end
 
       def install_signed_cert
@@ -35,6 +38,7 @@ module Authentication
         @logger.debug "Copying SSL cert to #{pod_namespace}/#{pod_name}"
 
         resp = @kubectl_exec.new.copy(
+          k8s_object_lookup: @k8s_object_lookup,
           pod_namespace: pod_namespace,
           pod_name: pod_name,
           container: container_name,

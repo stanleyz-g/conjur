@@ -24,7 +24,10 @@ module Authentication
       private
 
       def validate_the_request
-        @validate_pod_request.(pod_request: pod_request)
+        @validate_pod_request.(
+          pod_request: pod_request,
+          k8s_object_lookup: K8sObjectLookup.new(webservice)
+        )
       end
 
       def validate_header_cert
@@ -76,6 +79,14 @@ module Authentication
       def host_common_name
         resource_name = username
         CommonName.from_host_resource_name(resource_name).to_s
+      end
+
+      def webservice
+        ::Authentication::Webservice.new(
+          account: account,
+          authenticator_name: 'authn-k8s',
+          service_id: service_id
+        )
       end
 
       def webservice_ca

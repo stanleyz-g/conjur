@@ -8,10 +8,9 @@ module Authentication
     ValidatePodRequest = CommandClass.new(
       dependencies: {
         resource_repo: Resource,
-        k8s_resolver: K8sResolver,
-        k8s_object_lookup: K8sObjectLookup # K8s API facade
+        k8s_resolver: K8sResolver
       },
-      inputs: [:pod_request]
+      inputs: %i(pod_request k8s_object_lookup)
     ) do
 
       extend Forwardable

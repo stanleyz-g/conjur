@@ -55,6 +55,8 @@ RSpec.describe Authentication::AuthnK8s::InjectClientCert do
 
   let(:validate_pod_request) { double("ValidatePodRequest") }
 
+  let(:secret_value) { 'SomeSecret' }
+
   let(:dependencies) { { resource_repo: double(),
                          conjur_ca_repo: double(),
                          k8s_object_lookup: double(),
@@ -72,6 +74,10 @@ RSpec.describe Authentication::AuthnK8s::InjectClientCert do
         authenticator_name: 'authn-k8s',
         service_id: service_id))
       .and_return(webservice)
+
+    allow(Authentication::Webservice).to receive(:variable)
+      .with(anything())
+      .and_return(:secret_value)
 
     allow(Repos::ConjurCA).to receive(:ca)
       .with(webservice_resource_id)
